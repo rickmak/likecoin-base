@@ -1,13 +1,17 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"os"
 	"strings"
+	"time"
 
 	verbosityutil "likenft-indexer/cmd/worker/cmd/util/verbosity"
-	"likenft-indexer/cmd/worker/context"
+	workercontext "likenft-indexer/cmd/worker/context"
 	"likenft-indexer/cmd/worker/task"
+	"likenft-indexer/internal/database"
 	"likenft-indexer/internal/util/sentry"
 	"likenft-indexer/internal/worker/middleware"
 
@@ -41,11 +45,11 @@ var workerCmd = &cobra.Command{
 			queues[q] = DEFAULT_QUEUE_PRIORITY
 		}
 
-		envCfg := context.ConfigFromContext(cmd.Context())
-		asynqClient := context.AsynqClientFromContext(cmd.Context())
-		asynqInspector := context.AsynqInspectorFromContext(cmd.Context())
-		evmQueryClient := context.EvmQueryClientFromContext(cmd.Context())
-		evmClient := context.EvmClientFromContext(cmd.Context())
+		envCfg := workercontext.ConfigFromContext(cmd.Context())
+		asynqClient := workercontext.AsynqClientFromContext(cmd.Context())
+		asynqInspector := workercontext.AsynqInspectorFromContext(cmd.Context())
+		evmQueryClient := workercontext.EvmQueryClientFromContext(cmd.Context())
+		evmClient := workercontext.EvmClientFromContext(cmd.Context())
 
 		hub, err := sentry.NewHub(envCfg.SentryDsn, envCfg.SentryDebug)
 
@@ -88,18 +92,44 @@ var workerCmd = &cobra.Command{
 		worker.ConfigServerMux(mux)
 
 		// ...register other handlers...
-		mux.Use(context.AsynqMiddlewareWithConfigContext(envCfg))
-		mux.Use(context.AsynqMiddlewareWithLoggerContext(logger))
-		mux.Use(context.AsynqMiddlewareWithAsynqClientContext(asynqClient))
-		mux.Use(context.AsynqMiddlewareWithAsynqInspectorContext(asynqInspector))
-		mux.Use(context.AsynqMiddlewareWithEvmQueryClientContext(evmQueryClient))
-		mux.Use(context.AsynqMiddlewareWithEvmClientContext(evmClient))
+		mux.Use(workercontext.AsynqMiddlewareWithConfigContext(envCfg))
+		mux.Use(workercontext.AsynqMiddlewareWithLoggerContext(logger))
+		mux.Use(workercontext.AsynqMiddlewareWithAsynqClientContext(asynqClient))
+		mux.Use(workercontext.AsynqMiddlewareWithAsynqInspectorContext(asynqInspector))
+		mux.Use(workercontext.AsynqMiddlewareWithEvmQueryClientContext(evmQueryClient))
+		mux.Use(workercontext.AsynqMiddlewareWithEvmClientContext(evmClient))
 		mux.Use(middleware.MakeSentryMiddleware(hub).Handle)
+
+		dbService := database.New()
+		go runOwnerCountRefresh(cmd.Context(), dbService)
 
 		if err := srv.Run(mux); err != nil {
 			log.Fatalf("could not run server: %v", err)
 		}
 	},
+}
+
+// runOwnerCountRefresh refreshes owner-count materialized views on a ticker.
+// Interval defaults to 10 minutes, overridable via OWNER_COUNT_REFRESH_INTERVAL (Go duration, e.g. "5m").
+func runOwnerCountRefresh(ctx context.Context, dbSvc database.Service) {
+	interval := 10 * time.Minute
+	if v := os.Getenv("OWNER_COUNT_REFRESH_INTERVAL"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			interval = d
+		}
+	}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			if err := dbSvc.RefreshOwnerCountViews(ctx); err != nil {
+				log.Printf("owner count refresh failed: %v", err)
+			}
+		case <-ctx.Done():
+			return
+		}
+	}
 }
 
 func init() {

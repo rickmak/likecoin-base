@@ -1790,9 +1790,9 @@ func (o OptUint64) Or(d Uint64) Uint64 {
 // Ref: #/components/schemas/PaginationResponse
 type PaginationResponse struct {
 	NextKey int `json:"next_key"`
-	// Always equal to `data.length`. Kept for schema compatibility.
-	//
-	// Deprecated: schema marks this property as deprecated.
+	// Total items matching the filter across all pages, sourced from a materialized
+	// view. May be slightly stale. On endpoints without materialized-view support,
+	// equals data.length.
 	Count int `json:"count"`
 }
 

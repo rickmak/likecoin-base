@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 	"slices"
+	"strings"
 	"time"
 
 	"likenft-indexer/ent"
@@ -300,7 +301,10 @@ func (r *nftClassRepository) QueryNFTClassesByEvmAddress(
 		return nil, 0, 0, err
 	}
 
-	count = len(nftClasses)
+	count, err = r.dbService.GetNFTClassTotalByOwner(ctx, strings.ToLower(accountEvmAddress))
+	if err != nil {
+		return nil, 0, 0, err
+	}
 	nextKey = 0
 	if len(nftClasses) > 0 {
 		nextKey = nftClasses[len(nftClasses)-1].ID

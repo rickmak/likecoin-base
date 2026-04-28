@@ -24,6 +24,15 @@ type Service interface {
 	Client() *ent.Client
 	Health() map[string]string
 	Close() error
+
+	// RefreshOwnerCountViews refreshes both owner-count materialized views concurrently.
+	RefreshOwnerCountViews(ctx context.Context) error
+	// GetNFTTotalByOwner returns the total NFT count for an owner from the materialized view.
+	// lowerOwnerAddress must already be lowercased.
+	GetNFTTotalByOwner(ctx context.Context, lowerOwnerAddress string) (int, error)
+	// GetNFTClassTotalByOwner returns the total NFTClass count for an owner from the materialized view.
+	// lowerOwnerAddress must already be lowercased.
+	GetNFTClassTotalByOwner(ctx context.Context, lowerOwnerAddress string) (int, error)
 }
 
 type service struct {
@@ -120,6 +129,38 @@ func (s *service) Health() map[string]string {
 	}
 
 	return stats
+}
+
+func (s *service) RefreshOwnerCountViews(ctx context.Context) error {
+	if _, err := s.db.ExecContext(ctx, "REFRESH MATERIALIZED VIEW CONCURRENTLY nft_owner_nft_counts"); err != nil {
+		return err
+	}
+	_, err := s.db.ExecContext(ctx, "REFRESH MATERIALIZED VIEW CONCURRENTLY nftclass_owner_nftclass_counts")
+	return err
+}
+
+func (s *service) GetNFTTotalByOwner(ctx context.Context, lowerOwnerAddress string) (int, error) {
+	var count int
+	err := s.db.QueryRowContext(ctx,
+		"SELECT COALESCE(total_count, 0) FROM nft_owner_nft_counts WHERE lower_owner_address = $1",
+		lowerOwnerAddress,
+	).Scan(&count)
+	if err == sql.ErrNoRows {
+		return 0, nil
+	}
+	return count, err
+}
+
+func (s *service) GetNFTClassTotalByOwner(ctx context.Context, lowerOwnerAddress string) (int, error) {
+	var count int
+	err := s.db.QueryRowContext(ctx,
+		"SELECT COALESCE(total_count, 0) FROM nftclass_owner_nftclass_counts WHERE lower_owner_address = $1",
+		lowerOwnerAddress,
+	).Scan(&count)
+	if err == sql.ErrNoRows {
+		return 0, nil
+	}
+	return count, err
 }
 
 // Close closes the database connection.

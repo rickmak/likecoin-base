@@ -41,4 +41,5 @@ func init() {
 	rootCmd.AddCommand(ProcessAllEVMEventCmd)
 	rootCmd.AddCommand(ProcessEVMEventCmd)
 	rootCmd.AddCommand(RecalculateEvmEventsCmd)
+	rootCmd.AddCommand(RefreshCountsCmd)
 }

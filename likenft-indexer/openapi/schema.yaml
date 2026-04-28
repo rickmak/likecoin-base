@@ -1003,8 +1003,10 @@ components:
           type: integer
         count:
           type: integer
-          deprecated: true
-          description: Always equal to `data.length`. Kept for schema compatibility.
+          description: >
+            Total items matching the filter across all pages, sourced from a
+            materialized view. May be slightly stale. On endpoints without
+            materialized-view support, equals data.length.
       required:
         - next_key
         - count

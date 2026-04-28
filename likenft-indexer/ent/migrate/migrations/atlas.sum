@@ -1,4 +1,4 @@
-h1:Ufg+vOBuwFM+gN0vUTrIUu9cApcdp5WD3eftVB7p2nM=
+h1:065XKtiow5nO5MnkpWIOzMOFURolvhGnDGE79Oj2cFg=
 20250128141722.sql h1:ryXRWHhorhSGucN6U492mujs+SXglSD9AFpGmDqybvM=
 20250401092803.sql h1:JIb0qYQjuR1cWEJ2rmv14t/P1XRYgj9bU+X9oTj8+Ds=
 20250402104835.sql h1:1K1uXbyv1QsRv3Ld80bKWVxfug4O+QNwMya6b/g5/1w=
@@ -11,3 +11,4 @@ h1:Ufg+vOBuwFM+gN0vUTrIUu9cApcdp5WD3eftVB7p2nM=
 20250722021109_Rename nftclass_acquire_book_nft_events_score to eta.sql h1:rp+NnzjOK17MtIwbINhozrE8QXPC/8VUv2r88mqtmPw=
 20251014134139_Add updater_addresses to nftclasses.sql h1:UxPgC9lShgKsyLLm+iJRsiZPyZlLy03HTbA3PvyFpyk=
 20260423105001_Add lower owner_address indexes.sql h1:e1C8btioGxek8QzaD6jrb0T3Q4X9vO1KfbkrRGRsEPE=
+20260428000001_Add owner count materialized views.sql h1:EBUnb66iQpxszPbKc1wGJxizE+G8PbBSmAeGlxHzCJo=

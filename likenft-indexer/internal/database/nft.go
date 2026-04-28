@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"math/big"
+	"strings"
 	"time"
 
 	"likenft-indexer/ent"
@@ -89,7 +90,10 @@ func (r *nftRepository) QueryNFTsByEvmAddress(
 		return nil, 0, 0, err
 	}
 
-	count = len(nfts)
+	count, err = r.dbService.GetNFTTotalByOwner(ctx, strings.ToLower(accountEvmAddress))
+	if err != nil {
+		return nil, 0, 0, err
+	}
 	nextKey = 0
 	if len(nfts) > 0 {
 		nextKey = nfts[len(nfts)-1].ID
